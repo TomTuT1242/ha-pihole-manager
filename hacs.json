@@ -1,0 +1,5 @@
+{
+  "name": "TomTuT Pi-hole Manager",
+  "render_readme": true,
+  "filename": "pihole-manager-card.js"
+}
