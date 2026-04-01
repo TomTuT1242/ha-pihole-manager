@@ -10,6 +10,8 @@ class PiholeManagerCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
       this._rendered = true;
+      this._update();
+      return;
     }
     if (!this._eventSubscribed && hass.connection) {
       this._eventSubscribed = true;
@@ -24,7 +26,8 @@ class PiholeManagerCard extends HTMLElement {
         }
       }, "pihole_manager_sync_result");
     }
-    this._update();
+    // Targeted update — only refresh values, don't rebuild DOM
+    this._updateValues();
   }
 
   async _callServiceWithResponse(service, data) {
@@ -698,6 +701,83 @@ class PiholeManagerCard extends HTMLElement {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return num.toLocaleString("de-DE");
+  }
+
+  _updateValues() {
+    if (!this.shadowRoot) return;
+    const sr = this.shadowRoot;
+    const instances = this._getInstances();
+    if (instances.length === 0) return;
+
+    const stats = this._getUnifiedStats(instances);
+
+    // Update stat values
+    const statMap = [
+      [".stats-grid .stat-card:nth-child(1) .stat-value", this._formatNumber(stats.queries)],
+      [".stats-grid .stat-card:nth-child(2) .stat-value", this._formatNumber(stats.blocked)],
+      [".stats-grid .stat-card:nth-child(3) .stat-value", this._formatNumber(stats.domains)],
+    ];
+    for (const [sel, val] of statMap) {
+      const el = sr.querySelector(sel);
+      if (el && el.textContent !== val) el.textContent = val;
+    }
+    // Blocked percent label
+    const blockedLabel = sr.querySelector(".stats-grid .stat-card:nth-child(2) .stat-label");
+    if (blockedLabel) {
+      const txt = `Blockiert (${stats.percent}%)`;
+      if (blockedLabel.textContent !== txt) blockedLabel.textContent = txt;
+    }
+
+    // Secondary stats
+    const secValues = [stats.denied, stats.allowed, stats.dns, stats.count];
+    sr.querySelectorAll(".secondary-stat .value").forEach((el, i) => {
+      const v = String(secValues[i] ?? "");
+      if (el.textContent !== v) el.textContent = v;
+    });
+
+    // Status bar
+    const statusClass = stats.allBlocking ? "active" : stats.anyBlocking ? "partial" : "inactive";
+    const statusBar = sr.querySelector(".status-bar");
+    if (statusBar) {
+      statusBar.className = "status-bar " + statusClass;
+      const statusText = stats.allBlocking
+        ? `${stats.count} Instanzen aktiv \u2014 Schutz l\u00e4uft`
+        : stats.anyBlocking
+          ? `Teilweise aktiv \u2014 ${stats.count} Instanzen`
+          : `Blocking deaktiviert \u2014 ${stats.count} Instanzen`;
+      const textNode = statusBar.lastChild;
+      if (textNode && textNode.nodeType === 3 && textNode.textContent.trim() !== statusText.trim()) {
+        textNode.textContent = "\n        " + statusText + "\n      ";
+      }
+    }
+
+    // Master toggle
+    const toggleClass = stats.allBlocking ? "on" : stats.anyBlocking ? "partial" : "off";
+    const masterToggle = sr.getElementById("masterToggle");
+    if (masterToggle) masterToggle.className = "master-toggle " + toggleClass;
+
+    // Instance dots and toggles
+    sr.querySelectorAll(".instance-toggle").forEach(btn => {
+      const sw = btn.dataset.switch;
+      const isOn = this._val(sw) === "on";
+      btn.className = "instance-toggle " + (isOn ? "on" : "off");
+    });
+    sr.querySelectorAll(".instance").forEach((inst, i) => {
+      if (i >= instances.length) return;
+      const isOn = instances[i].switch ? this._val(instances[i].switch) === "on" : true;
+      const dot = inst.querySelector(".instance-dot");
+      if (dot) dot.className = "instance-dot " + (isOn ? "on" : "off");
+      // Update instance stats
+      const statEls = inst.querySelectorAll(".instance-stat strong");
+      if (statEls.length >= 3) {
+        const q = this._numVal(instances[i].sensors.queries_total);
+        const b = this._numVal(instances[i].sensors.queries_blocked);
+        const pct = this._numVal(instances[i].sensors.percent_blocked);
+        statEls[0].textContent = this._formatNumber(q);
+        statEls[1].textContent = this._formatNumber(b);
+        statEls[2].textContent = pct !== null ? pct + "%" : "\u2014";
+      }
+    });
   }
 
   _update() {
