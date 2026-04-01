@@ -207,6 +207,11 @@ class PiholeApiClient:
             f"{API_DOMAINS_DENY_REGEX}/{pattern}",
         )
 
+    async def get_denied_domains_regex(self) -> list[dict[str, Any]]:
+        """Get all denied regex patterns."""
+        data = await self._request("GET", API_DOMAINS_DENY_REGEX)
+        return data.get("domains", [])
+
     async def get_allowed_domains(self) -> list[dict[str, Any]]:
         """Get all allowed (whitelisted) domains."""
         data = await self._request("GET", API_DOMAINS_ALLOW)
@@ -241,6 +246,11 @@ class PiholeApiClient:
             "DELETE",
             f"{API_DOMAINS_ALLOW_REGEX}/{pattern}",
         )
+
+    async def get_allowed_domains_regex(self) -> list[dict[str, Any]]:
+        """Get all allowed regex patterns."""
+        data = await self._request("GET", API_DOMAINS_ALLOW_REGEX)
+        return data.get("domains", [])
 
     # ── Local DNS Records (A + CNAME) ──────────────────────
 

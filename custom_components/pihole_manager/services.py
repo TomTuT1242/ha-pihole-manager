@@ -463,33 +463,196 @@ async def _handle_get_top_blocked(call: ServiceCall) -> dict[str, Any]:
     return {"domains": domain_list}
 
 
+async def _sync_domains(
+    coordinators: list[PiholeManagerCoordinator],
+    get_fn: str,
+    add_fn: str,
+    label: str,
+) -> tuple[list[dict], list[dict]]:
+    """Sync domains (exact or regex) across all instances.
+
+    Gets all domains from all instances, computes the union,
+    and adds missing domains to each instance.
+    """
+    success: list[dict] = []
+    failed: list[dict] = []
+
+    # Get domains from all instances
+    results = await asyncio.gather(
+        *(getattr(c.api, get_fn)() for c in coordinators),
+        return_exceptions=True,
+    )
+
+    # Build union: domain_str -> comment (keep first comment found)
+    union: dict[str, str] = {}
+    per_instance: list[set[str]] = []
+    for result in results:
+        if isinstance(result, Exception):
+            per_instance.append(set())
+            continue
+        instance_domains: set[str] = set()
+        for entry in result:
+            domain = entry.get("domain", "")
+            if domain and domain not in union:
+                union[domain] = entry.get("comment", "")
+            instance_domains.add(domain)
+        per_instance.append(instance_domains)
+
+    # Add missing domains to each instance
+    for coordinator, existing in zip(coordinators, per_instance):
+        name = coordinator.config_entry.title
+        missing = set(union.keys()) - existing
+        if not missing:
+            success.append({"instance": name})
+            continue
+        try:
+            for domain in sorted(missing):
+                await getattr(coordinator.api, add_fn)(domain, union[domain])
+            success.append({"instance": name, "added": len(missing)})
+            _LOGGER.info("%s: added %d entries on %s", label, len(missing), name)
+        except Exception as err:
+            _LOGGER.error("%s failed on %s: %s", label, name, err)
+            failed.append({"instance": name, "error": str(err)})
+
+    return success, failed
+
+
+async def _sync_blocklists(
+    coordinators: list[PiholeManagerCoordinator],
+) -> tuple[list[dict], list[dict]]:
+    """Sync blocklists across all instances.
+
+    Gets all blocklists, computes the union by URL, adds missing ones.
+    """
+    success: list[dict] = []
+    failed: list[dict] = []
+
+    results = await asyncio.gather(
+        *(c.api.get_lists() for c in coordinators),
+        return_exceptions=True,
+    )
+
+    # Build union: url -> comment
+    union: dict[str, str] = {}
+    per_instance: list[set[str]] = []
+    for result in results:
+        if isinstance(result, Exception):
+            per_instance.append(set())
+            continue
+        instance_urls: set[str] = set()
+        for entry in result:
+            url = entry.get("address", "")
+            if url and url not in union:
+                union[url] = entry.get("comment", "")
+            instance_urls.add(url)
+        per_instance.append(instance_urls)
+
+    # Add missing blocklists to each instance
+    for coordinator, existing in zip(coordinators, per_instance):
+        name = coordinator.config_entry.title
+        missing = set(union.keys()) - existing
+        if not missing:
+            success.append({"instance": name})
+            continue
+        try:
+            for url in sorted(missing):
+                await coordinator.api.add_list(url, union[url])
+            success.append({"instance": name, "added": len(missing)})
+            _LOGGER.info("sync_blocklists: added %d lists on %s", len(missing), name)
+        except Exception as err:
+            _LOGGER.error("sync_blocklists failed on %s: %s", name, err)
+            failed.append({"instance": name, "error": str(err)})
+
+    return success, failed
+
+
 async def _handle_sync_all(call: ServiceCall) -> None:
     coordinators = _get_coordinators(call.hass)
     if not coordinators:
         _LOGGER.warning("No Pi-hole instances configured")
         return
 
-    results = await asyncio.gather(
+    all_success: list[dict] = []
+    all_failed: list[dict] = []
+
+    # 1. Sync DNS Records (A + CNAME) — uses PATCH (set full list)
+    _LOGGER.info("sync_all: syncing DNS records...")
+    host_results = await asyncio.gather(
+        *(c.api.get_dns_hosts_raw() for c in coordinators),
+        return_exceptions=True,
+    )
+    cname_results = await asyncio.gather(
+        *(c.api.get_dns_cnames_raw() for c in coordinators),
+        return_exceptions=True,
+    )
+    all_hosts: set[str] = set()
+    all_cnames: set[str] = set()
+    for hosts in host_results:
+        if not isinstance(hosts, Exception):
+            all_hosts.update(hosts)
+    for cnames in cname_results:
+        if not isinstance(cnames, Exception):
+            all_cnames.update(cnames)
+    sorted_hosts = sorted(all_hosts)
+    sorted_cnames = sorted(all_cnames)
+    for coordinator, cur_hosts, cur_cnames in zip(coordinators, host_results, cname_results):
+        name = coordinator.config_entry.title
+        cur_h = set(cur_hosts) if not isinstance(cur_hosts, Exception) else set()
+        cur_c = set(cur_cnames) if not isinstance(cur_cnames, Exception) else set()
+        try:
+            if cur_h != all_hosts:
+                await coordinator.api.set_dns_hosts_raw(sorted_hosts)
+            if cur_c != all_cnames:
+                await coordinator.api.set_dns_cnames_raw(sorted_cnames)
+            all_success.append({"instance": name, "step": "dns_records"})
+        except Exception as err:
+            _LOGGER.error("sync_all dns_records failed on %s: %s", name, err)
+            all_failed.append({"instance": name, "step": "dns_records", "error": str(err)})
+
+    # 2. Sync Denied Domains (exact + regex)
+    _LOGGER.info("sync_all: syncing denied domains...")
+    s, f = await _sync_domains(coordinators, "get_denied_domains", "add_denied_domain", "sync_denied_exact")
+    all_success.extend(s)
+    all_failed.extend(f)
+    s, f = await _sync_domains(coordinators, "get_denied_domains_regex", "add_denied_domain_regex", "sync_denied_regex")
+    all_success.extend(s)
+    all_failed.extend(f)
+
+    # 3. Sync Allowed Domains (exact + regex)
+    _LOGGER.info("sync_all: syncing allowed domains...")
+    s, f = await _sync_domains(coordinators, "get_allowed_domains", "add_allowed_domain", "sync_allowed_exact")
+    all_success.extend(s)
+    all_failed.extend(f)
+    s, f = await _sync_domains(coordinators, "get_allowed_domains_regex", "add_allowed_domain_regex", "sync_allowed_regex")
+    all_success.extend(s)
+    all_failed.extend(f)
+
+    # 4. Sync Blocklists
+    _LOGGER.info("sync_all: syncing blocklists...")
+    s, f = await _sync_blocklists(coordinators)
+    all_success.extend(s)
+    all_failed.extend(f)
+
+    # 5. Refresh all coordinators
+    _LOGGER.info("sync_all: refreshing all coordinators...")
+    await asyncio.gather(
         *(c.async_request_refresh() for c in coordinators),
         return_exceptions=True,
     )
-
-    success = []
-    failed = []
-    for coordinator, result in zip(coordinators, results):
-        name = coordinator.config_entry.title
-        if isinstance(result, Exception):
-            failed.append({"instance": name, "error": str(result)})
-        else:
-            success.append({"instance": name})
 
     call.hass.bus.async_fire(
         "pihole_manager_sync_result",
         {
             "action": "sync_all",
-            "success": success,
-            "failed": failed,
+            "success": all_success,
+            "failed": all_failed,
         },
+    )
+
+    _LOGGER.info(
+        "sync_all complete: %d succeeded, %d failed",
+        len(all_success),
+        len(all_failed),
     )
 
 
