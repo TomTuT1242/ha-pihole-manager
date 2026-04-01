@@ -238,7 +238,7 @@ class PiholeManagerCard extends HTMLElement {
       ? this._topBlockedTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
       : "";
 
-    const limited = this._topBlockedData.slice(0, 50);
+    const limited = this._topBlockedData.slice(0, 25);
     container.innerHTML = `
       <button class="top-blocked-btn" id="topBlockedBtn">Aktualisieren</button>
       ${timeStr ? `<div class="top-blocked-time">Abgerufen: ${timeStr}</div>` : ""}
@@ -261,7 +261,7 @@ class PiholeManagerCard extends HTMLElement {
       this._topBlockedLoading = true;
       this._updateTopBlocked();
       try {
-        const data = await this._callServiceWithResponse("get_top_blocked", { count: 50 });
+        const data = await this._callServiceWithResponse("get_top_blocked", { count: 25 });
         this._topBlockedData = data.domains || [];
         this._topBlockedTime = new Date();
       } catch (err) {
@@ -295,7 +295,7 @@ class PiholeManagerCard extends HTMLElement {
     const blockedStatuses = new Set(["GRAVITY", "BLACKLIST", "REGEX", "DENYLIST",
       "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL", "EXTERNAL_BLOCKED_NXRA", "SPECIAL_DOMAIN"]);
 
-    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 50);
+    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 25);
     container.innerHTML = `
       <button class="top-blocked-btn" id="recentQueriesBtn">Aktualisieren</button>
       <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
@@ -326,7 +326,7 @@ class PiholeManagerCard extends HTMLElement {
       this._recentQueriesLoading = true;
       this._updateRecentQueries();
       try {
-        const data = await this._callServiceWithResponse("get_recent_queries", { count: 50 });
+        const data = await this._callServiceWithResponse("get_recent_queries", { count: 25 });
         this._recentQueriesData = data.queries || [];
         this._recentQueriesTime = new Date();
       } catch (err) {
@@ -887,36 +887,36 @@ class PiholeManagerCard extends HTMLElement {
           </div>
         </div>
 
-        <!-- Recent Queries -->
-        <div class="top-blocked-section">
-          <div class="top-blocked-header">
-            <span class="tb-icon">\u23F1</span>
-            <span class="tb-title">Recent Queries</span>
-          </div>
-          <div id="recentQueriesContent">
-            <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
-          </div>
-        </div>
-
-        <!-- Top Blocked Domains -->
-        <div class="top-blocked-section" style="margin-top:8px;">
-          <div class="top-blocked-header">
-            <span class="tb-icon">\uD83D\uDD0D</span>
-            <span class="tb-title">Top Blocked Domains</span>
-          </div>
-          <div id="topBlockedContent">
-            <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
-          </div>
-        </div>
-
-        <!-- Sync All -->
-        <div class="sync-row">
-          <button class="sync-btn" id="syncAllBtn">
-            \u21BB Alle Pi's synchronisieren
-          </button>
-        </div>
-
         <div class="admin-feedback" id="adminFeedback"></div>
+      </div>
+
+      <!-- Recent Queries (outside admin panel) -->
+      <div class="top-blocked-section">
+        <div class="top-blocked-header">
+          <span class="tb-icon">\u23F1</span>
+          <span class="tb-title">Recent Queries</span>
+        </div>
+        <div id="recentQueriesContent">
+          <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
+        </div>
+      </div>
+
+      <!-- Top Blocked Domains (outside admin panel) -->
+      <div class="top-blocked-section" style="margin-top:8px;">
+        <div class="top-blocked-header">
+          <span class="tb-icon">\uD83D\uDD0D</span>
+          <span class="tb-title">Top Blocked Domains</span>
+        </div>
+        <div id="topBlockedContent">
+          <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
+        </div>
+      </div>
+
+      <!-- Sync All (outside admin panel) -->
+      <div class="sync-row">
+        <button class="sync-btn" id="syncAllBtn">
+          \u21BB Alle Pi's synchronisieren
+        </button>
       </div>
     `;
 
