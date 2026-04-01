@@ -52,6 +52,7 @@ class PiholeManagerCard extends HTMLElement {
     this._recentQueriesLoading = false;
     this._recentQueriesOpen = false;
     this._topBlockedOpen = false;
+    this._queriesOpen = false;
   }
 
   // ── Discover entities by entity_id pattern ─────────────
@@ -61,7 +62,7 @@ class PiholeManagerCard extends HTMLElement {
     const entities = Object.keys(this._hass.states);
 
     const blockingSwitches = entities.filter(
-      (e) => e.match(/^switch\.pi_hole(_\d+)?_blocking$/)
+      (e) => e.match(/^switch\.pi_hole[a-z0-9_]*_blocking$/)
     );
 
     const keyMap = {
@@ -78,7 +79,7 @@ class PiholeManagerCard extends HTMLElement {
     const instances = {};
 
     for (const sw of blockingSwitches) {
-      const match = sw.match(/^switch\.(pi_hole(?:_\d+)?)_blocking$/);
+      const match = sw.match(/^switch\.(pi_hole[a-z0-9_]*)_blocking$/);
       if (!match) continue;
       const prefix = match[1];
       const friendly = this._hass.states[sw]?.attributes?.friendly_name || prefix;
@@ -235,7 +236,7 @@ class PiholeManagerCard extends HTMLElement {
     }
 
     const timeStr = this._topBlockedTime
-      ? this._topBlockedTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
+      ? this._topBlockedTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr"
       : "";
 
     const limited = this._topBlockedData.slice(0, 20);
@@ -289,7 +290,7 @@ class PiholeManagerCard extends HTMLElement {
     }
 
     const timeStr = this._recentQueriesTime
-      ? this._recentQueriesTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      ? this._recentQueriesTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr"
       : "";
 
     const blockedStatuses = new Set(["GRAVITY", "BLACKLIST", "REGEX", "DENYLIST",
@@ -887,36 +888,47 @@ class PiholeManagerCard extends HTMLElement {
           </div>
         </div>
 
+        <!-- Sync All (inside Verwaltung) -->
+        <div class="sync-row">
+          <button class="sync-btn" id="syncAllBtn">
+            \u21BB Alle Pi's synchronisieren
+          </button>
+        </div>
+
         <div class="admin-feedback" id="adminFeedback"></div>
       </div>
 
-      <!-- Recent Queries (outside admin panel) -->
-      <div class="top-blocked-section">
-        <div class="top-blocked-header">
-          <span class="tb-icon">\u23F1</span>
-          <span class="tb-title">Recent Queries</span>
-        </div>
-        <div id="recentQueriesContent">
-          <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
-        </div>
-      </div>
+      <!-- Abfragen Section -->
+      <hr class="admin-divider">
 
-      <!-- Top Blocked Domains (outside admin panel) -->
-      <div class="top-blocked-section" style="margin-top:8px;">
-        <div class="top-blocked-header">
-          <span class="tb-icon">\uD83D\uDD0D</span>
-          <span class="tb-title">Top Blocked Domains</span>
-        </div>
-        <div id="topBlockedContent">
-          <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
-        </div>
-      </div>
+      <button class="expand-btn ${this._queriesOpen ? "open" : ""}" id="queriesBtn">
+        Abfragen <span class="arrow">\u25BC</span>
+      </button>
 
-      <!-- Sync All (outside admin panel) -->
-      <div class="sync-row">
-        <button class="sync-btn" id="syncAllBtn">
-          \u21BB Alle Pi's synchronisieren
-        </button>
+      <div class="collapse-panel ${this._queriesOpen ? "open" : ""}" id="queriesPanel">
+
+        <!-- Recent Queries -->
+        <div class="top-blocked-section">
+          <div class="top-blocked-header">
+            <span class="tb-icon">\u23F1</span>
+            <span class="tb-title">Recent Queries</span>
+          </div>
+          <div id="recentQueriesContent">
+            <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
+          </div>
+        </div>
+
+        <!-- Top Blocked Domains -->
+        <div class="top-blocked-section" style="margin-top:8px;">
+          <div class="top-blocked-header">
+            <span class="tb-icon">\uD83D\uDD0D</span>
+            <span class="tb-title">Top Blocked Domains</span>
+          </div>
+          <div id="topBlockedContent">
+            <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
+          </div>
+        </div>
+
       </div>
     `;
 
@@ -952,6 +964,13 @@ class PiholeManagerCard extends HTMLElement {
       this._adminOpen = !this._adminOpen;
       sr.getElementById("adminBtn")?.classList.toggle("open", this._adminOpen);
       sr.getElementById("adminPanel")?.classList.toggle("open", this._adminOpen);
+    });
+
+    // Abfragen panel
+    sr.getElementById("queriesBtn")?.addEventListener("click", () => {
+      this._queriesOpen = !this._queriesOpen;
+      sr.getElementById("queriesBtn")?.classList.toggle("open", this._queriesOpen);
+      sr.getElementById("queriesPanel")?.classList.toggle("open", this._queriesOpen);
     });
 
     // Category toggles

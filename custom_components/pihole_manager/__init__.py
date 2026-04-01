@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "switch"]
 
 CARD_NAME = "pihole-manager-card"
-CARD_URL = f"/{DOMAIN}/{CARD_NAME}.js?v=1.2.0"
+CARD_URL = f"/{DOMAIN}/{CARD_NAME}.js?v=1.3.0"
 
 type PiholeManagerConfigEntry = ConfigEntry[PiholeManagerCoordinator]
 
