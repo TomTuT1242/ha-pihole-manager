@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CoreState, Event, HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PiholeApiClient
@@ -27,26 +29,38 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor", "switch"]
 
-CARD_URL = "/pihole_manager/pihole-manager-card.js"
 CARD_NAME = "pihole-manager-card"
+CARD_URL = f"/{DOMAIN}/{CARD_NAME}.js"
 
 type PiholeManagerConfigEntry = ConfigEntry[PiholeManagerCoordinator]
 
 
-async def _async_register_card(hass: HomeAssistant) -> None:
-    """Register the Lovelace card JS as a static resource."""
-    # Serve the www/ folder under /pihole_manager/
-    hass.http.register_static_path(
-        "/pihole_manager",
-        str(Path(__file__).parent / "www"),
-        cache_headers=False,
-    )
-
-    # Register as Lovelace resource if not already registered
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Register static path and Lovelace resource for the card."""
+    # 1. Register the static file path
     try:
-        resources = hass.data.get("lovelace", {}).get("resources")
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(f"/{DOMAIN}", str(Path(__file__).parent / "www"), False)]
+        )
+    except RuntimeError:
+        pass  # Already registered (e.g. after reload)
+
+    # 2. Auto-register as Lovelace resource
+    try:
+        lovelace = hass.data.get("lovelace")
+        if lovelace is None:
+            _LOGGER.warning(
+                "Lovelace not available. Add card resource manually: URL=%s, Type=module",
+                CARD_URL,
+            )
+            return
+
+        resources = lovelace.get("resources") if isinstance(lovelace, dict) else getattr(lovelace, "resources", None)
         if resources is None:
-            _LOGGER.debug("Lovelace resources not available, skipping card registration")
+            _LOGGER.warning(
+                "Lovelace resources not available. Add card resource manually: URL=%s, Type=module",
+                CARD_URL,
+            )
             return
 
         if not resources.loaded:
@@ -60,9 +74,23 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         _LOGGER.info("Registered Lovelace resource: %s", CARD_URL)
     except Exception:
         _LOGGER.warning(
-            "Could not auto-register Lovelace resource. "
-            "Please add manually: URL=%s, Type=module", CARD_URL
+            "Could not auto-register Lovelace resource. Add manually: URL=%s, Type=module",
+            CARD_URL,
         )
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Pi-hole Manager component."""
+
+    async def _on_started(_event: Event | None = None) -> None:
+        await _async_register_frontend(hass)
+
+    if hass.state == CoreState.running:
+        await _on_started()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_started)
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PiholeManagerConfigEntry) -> bool:
@@ -88,9 +116,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PiholeManagerConfigEntry
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Register card + services on first entry
+    # Register services on first entry
     if len(hass.data[DOMAIN]) == 1:
-        await _async_register_card(hass)
         await async_setup_services(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
