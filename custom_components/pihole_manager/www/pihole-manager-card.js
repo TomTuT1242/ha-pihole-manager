@@ -238,17 +238,18 @@ class PiholeManagerCard extends HTMLElement {
       ? this._topBlockedTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
       : "";
 
+    const limited = this._topBlockedData.slice(0, 50);
     container.innerHTML = `
+      <button class="top-blocked-btn" id="topBlockedBtn">Aktualisieren</button>
+      ${timeStr ? `<div class="top-blocked-time">Abgerufen: ${timeStr}</div>` : ""}
       <ul class="top-blocked-list">
-        ${this._topBlockedData.map((d, i) => `
+        ${limited.map((d, i) => `
           <li class="top-blocked-item">
             <span class="tb-rank">${i + 1}.</span>
             <span class="tb-domain" title="${this._esc(d.domain)}">${this._esc(d.domain)}</span>
             <span class="tb-count">${this._formatCount(d.count)}</span>
           </li>`).join("")}
       </ul>
-      ${timeStr ? `<div class="top-blocked-time">Abgerufen: ${timeStr}</div>` : ""}
-      <button class="top-blocked-btn" id="topBlockedBtn" style="margin-top:8px;">Erneut analysieren</button>
     `;
     this._bindTopBlockedBtn();
   }
@@ -257,16 +258,10 @@ class PiholeManagerCard extends HTMLElement {
     const btn = this.shadowRoot?.getElementById("topBlockedBtn");
     if (!btn) return;
     btn.addEventListener("click", async () => {
-      // Auto-open panel
-      if (!this._topBlockedOpen) {
-        this._topBlockedOpen = true;
-        this.shadowRoot?.getElementById("topBlockedToggle")?.classList.add("open");
-        this.shadowRoot?.getElementById("topBlockedPanel")?.classList.add("open");
-      }
       this._topBlockedLoading = true;
       this._updateTopBlocked();
       try {
-        const data = await this._callServiceWithResponse("get_top_blocked", { count: 20 });
+        const data = await this._callServiceWithResponse("get_top_blocked", { count: 50 });
         this._topBlockedData = data.domains || [];
         this._topBlockedTime = new Date();
       } catch (err) {
@@ -300,9 +295,12 @@ class PiholeManagerCard extends HTMLElement {
     const blockedStatuses = new Set(["GRAVITY", "BLACKLIST", "REGEX", "DENYLIST",
       "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL", "EXTERNAL_BLOCKED_NXRA", "SPECIAL_DOMAIN"]);
 
+    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 50);
     container.innerHTML = `
+      <button class="top-blocked-btn" id="recentQueriesBtn">Aktualisieren</button>
+      <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
       <ul class="rq-list">
-        ${this._recentQueriesData.map(q => {
+        ${sorted.map(q => {
           const blocked = q.blocked;
           const statusCls = blocked ? "blocked" : (q.status === "CACHE" ? "cached" : "allowed");
           const t = new Date(q.time * 1000);
@@ -317,8 +315,6 @@ class PiholeManagerCard extends HTMLElement {
             </li>`;
         }).join("")}
       </ul>
-      <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
-      <button class="top-blocked-btn" id="recentQueriesBtn" style="margin-top:8px;">Aktualisieren</button>
     `;
     this._bindRecentQueriesBtn();
   }
@@ -327,11 +323,6 @@ class PiholeManagerCard extends HTMLElement {
     const btn = this.shadowRoot?.getElementById("recentQueriesBtn");
     if (!btn) return;
     btn.addEventListener("click", async () => {
-      if (!this._recentQueriesOpen) {
-        this._recentQueriesOpen = true;
-        this.shadowRoot?.getElementById("recentQueriesToggle")?.classList.add("open");
-        this.shadowRoot?.getElementById("recentQueriesPanel")?.classList.add("open");
-      }
       this._recentQueriesLoading = true;
       this._updateRecentQueries();
       try {
@@ -898,29 +889,23 @@ class PiholeManagerCard extends HTMLElement {
 
         <!-- Recent Queries -->
         <div class="top-blocked-section">
-          <button class="top-blocked-header tb-collapsible" id="recentQueriesToggle">
+          <div class="top-blocked-header">
             <span class="tb-icon">\u23F1</span>
             <span class="tb-title">Recent Queries</span>
-            <span class="cat-arrow">\u25B6</span>
-          </button>
-          <div class="tb-collapse-panel" id="recentQueriesPanel">
-            <div id="recentQueriesContent">
-              <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
-            </div>
+          </div>
+          <div id="recentQueriesContent">
+            <button class="top-blocked-btn" id="recentQueriesBtn">Letzte Anfragen laden</button>
           </div>
         </div>
 
         <!-- Top Blocked Domains -->
         <div class="top-blocked-section" style="margin-top:8px;">
-          <button class="top-blocked-header tb-collapsible" id="topBlockedToggle">
+          <div class="top-blocked-header">
             <span class="tb-icon">\uD83D\uDD0D</span>
             <span class="tb-title">Top Blocked Domains</span>
-            <span class="cat-arrow">\u25B6</span>
-          </button>
-          <div class="tb-collapse-panel" id="topBlockedPanel">
-            <div id="topBlockedContent">
-              <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
-            </div>
+          </div>
+          <div id="topBlockedContent">
+            <button class="top-blocked-btn" id="topBlockedBtn">Jetzt analysieren</button>
           </div>
         </div>
 
@@ -1103,17 +1088,6 @@ class PiholeManagerCard extends HTMLElement {
       addBlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doAdd(); });
     }
 
-    // Top Blocked + Recent Queries collapse toggles
-    sr.getElementById("recentQueriesToggle")?.addEventListener("click", () => {
-      this._recentQueriesOpen = !this._recentQueriesOpen;
-      sr.getElementById("recentQueriesToggle")?.classList.toggle("open", this._recentQueriesOpen);
-      sr.getElementById("recentQueriesPanel")?.classList.toggle("open", this._recentQueriesOpen);
-    });
-    sr.getElementById("topBlockedToggle")?.addEventListener("click", () => {
-      this._topBlockedOpen = !this._topBlockedOpen;
-      sr.getElementById("topBlockedToggle")?.classList.toggle("open", this._topBlockedOpen);
-      sr.getElementById("topBlockedPanel")?.classList.toggle("open", this._topBlockedOpen);
-    });
     this._bindTopBlockedBtn();
     this._bindRecentQueriesBtn();
 
