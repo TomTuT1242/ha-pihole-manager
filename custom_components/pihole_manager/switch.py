@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -45,13 +46,21 @@ class PiholeBlockingSwitch(CoordinatorEntity[PiholeManagerCoordinator], SwitchEn
             "manufacturer": "Pi-hole",
             "model": "Pi-hole v6",
         }
+        self._optimistic_state: bool | None = None
 
     @property
     def is_on(self) -> bool | None:
         """Return True if blocking is enabled."""
+        if self._optimistic_state is not None:
+            return self._optimistic_state
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get("blocking", False)
+
+    def _handle_coordinator_update(self) -> None:
+        """Clear optimistic state when coordinator updates."""
+        self._optimistic_state = None
+        super()._handle_coordinator_update()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable blocking."""
@@ -60,6 +69,9 @@ class PiholeBlockingSwitch(CoordinatorEntity[PiholeManagerCoordinator], SwitchEn
         except PiholeApiError as err:
             _LOGGER.error("Failed to enable blocking: %s", err)
             return
+        self._optimistic_state = True
+        self.async_write_ha_state()
+        await asyncio.sleep(1)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -69,4 +81,7 @@ class PiholeBlockingSwitch(CoordinatorEntity[PiholeManagerCoordinator], SwitchEn
         except PiholeApiError as err:
             _LOGGER.error("Failed to disable blocking: %s", err)
             return
+        self._optimistic_state = False
+        self.async_write_ha_state()
+        await asyncio.sleep(1)
         await self.coordinator.async_request_refresh()
