@@ -667,13 +667,13 @@ SERVICES = {
     "remove_dns_record": (_handle_remove_dns_record, SCHEMA_DNS_RECORD, None),
     "add_dns_cname": (_handle_add_dns_cname, SCHEMA_DNS_CNAME, None),
     "remove_dns_cname": (_handle_remove_dns_cname, SCHEMA_DNS_CNAME, None),
-    "compare_dns_records": (_handle_compare_dns_records, None, SupportsResponse.ONLY),
+    "compare_dns_records": (_handle_compare_dns_records, None, SupportsResponse.OPTIONAL),
     "sync_dns_records": (_handle_sync_dns_records, None, None),
     "add_blocklist": (_handle_add_blocklist, SCHEMA_BLOCKLIST, None),
     "remove_blocklist": (_handle_remove_blocklist, SCHEMA_BLOCKLIST_ONLY, None),
     "toggle_blocklist": (_handle_toggle_blocklist, SCHEMA_TOGGLE_BLOCKLIST, None),
-    "get_recent_queries": (_handle_get_recent_queries, SCHEMA_RECENT_QUERIES, SupportsResponse.ONLY),
-    "get_top_blocked": (_handle_get_top_blocked, SCHEMA_TOP_BLOCKED, SupportsResponse.ONLY),
+    "get_recent_queries": (_handle_get_recent_queries, SCHEMA_RECENT_QUERIES, SupportsResponse.OPTIONAL),
+    "get_top_blocked": (_handle_get_top_blocked, SCHEMA_TOP_BLOCKED, SupportsResponse.OPTIONAL),
     "sync_all": (_handle_sync_all, None, None),
 }
 

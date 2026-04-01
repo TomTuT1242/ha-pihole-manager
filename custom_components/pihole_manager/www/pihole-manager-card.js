@@ -238,7 +238,7 @@ class PiholeManagerCard extends HTMLElement {
       ? this._topBlockedTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
       : "";
 
-    const limited = this._topBlockedData.slice(0, 25);
+    const limited = this._topBlockedData.slice(0, 20);
     container.innerHTML = `
       <button class="top-blocked-btn" id="topBlockedBtn">Aktualisieren</button>
       ${timeStr ? `<div class="top-blocked-time">Abgerufen: ${timeStr}</div>` : ""}
@@ -261,7 +261,7 @@ class PiholeManagerCard extends HTMLElement {
       this._topBlockedLoading = true;
       this._updateTopBlocked();
       try {
-        const data = await this._callServiceWithResponse("get_top_blocked", { count: 25 });
+        const data = await this._callServiceWithResponse("get_top_blocked", { count: 20 });
         this._topBlockedData = data.domains || [];
         this._topBlockedTime = new Date();
       } catch (err) {
@@ -295,7 +295,7 @@ class PiholeManagerCard extends HTMLElement {
     const blockedStatuses = new Set(["GRAVITY", "BLACKLIST", "REGEX", "DENYLIST",
       "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL", "EXTERNAL_BLOCKED_NXRA", "SPECIAL_DOMAIN"]);
 
-    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 25);
+    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 20);
     container.innerHTML = `
       <button class="top-blocked-btn" id="recentQueriesBtn">Aktualisieren</button>
       <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
@@ -326,7 +326,7 @@ class PiholeManagerCard extends HTMLElement {
       this._recentQueriesLoading = true;
       this._updateRecentQueries();
       try {
-        const data = await this._callServiceWithResponse("get_recent_queries", { count: 25 });
+        const data = await this._callServiceWithResponse("get_recent_queries", { count: 20 });
         this._recentQueriesData = data.queries || [];
         this._recentQueriesTime = new Date();
       } catch (err) {
@@ -612,9 +612,9 @@ class PiholeManagerCard extends HTMLElement {
 
         /* Recent Queries */
         .rq-list { margin: 0; padding: 0; list-style: none; }
-        .rq-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; border-bottom: 1px solid var(--divider); }
+        .rq-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; border-bottom: 1px solid var(--divider); }
         .rq-item:last-child { border-bottom: none; }
-        .rq-item .rq-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .rq-item .rq-status { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         .rq-item .rq-status.blocked { background: var(--red); }
         .rq-item .rq-status.allowed { background: var(--green); }
         .rq-item .rq-status.cached { background: var(--text-secondary); }
