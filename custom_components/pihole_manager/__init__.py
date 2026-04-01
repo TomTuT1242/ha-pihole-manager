@@ -5,10 +5,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from homeassistant.components.frontend import async_register_built_in_panel
-from homeassistant.components.lovelace.resources import (
-    ResourceStorageCollection,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -31,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor", "switch"]
 
-CARD_URL = f"/pihole_manager/pihole-manager-card.js"
+CARD_URL = "/pihole_manager/pihole-manager-card.js"
 CARD_NAME = "pihole-manager-card"
 
 type PiholeManagerConfigEntry = ConfigEntry[PiholeManagerCoordinator]
@@ -47,18 +43,26 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     )
 
     # Register as Lovelace resource if not already registered
-    if "lovelace" not in hass.data:
-        return
-    resources: ResourceStorageCollection = hass.data["lovelace"]["resources"]
-    if not resources.loaded:
-        await resources.async_load()
+    try:
+        resources = hass.data.get("lovelace", {}).get("resources")
+        if resources is None:
+            _LOGGER.debug("Lovelace resources not available, skipping card registration")
+            return
 
-    for item in resources.async_items():
-        if CARD_NAME in item.get("url", ""):
-            return  # Already registered
+        if not resources.loaded:
+            await resources.async_load()
 
-    await resources.async_create_item({"res_type": "module", "url": CARD_URL})
-    _LOGGER.info("Registered Lovelace resource: %s", CARD_URL)
+        for item in resources.async_items():
+            if CARD_NAME in item.get("url", ""):
+                return  # Already registered
+
+        await resources.async_create_item({"res_type": "module", "url": CARD_URL})
+        _LOGGER.info("Registered Lovelace resource: %s", CARD_URL)
+    except Exception:
+        _LOGGER.warning(
+            "Could not auto-register Lovelace resource. "
+            "Please add manually: URL=%s, Type=module", CARD_URL
+        )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PiholeManagerConfigEntry) -> bool:
