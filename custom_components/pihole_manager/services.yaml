@@ -1,0 +1,246 @@
+add_denied_domain:
+  name: Add Denied Domain
+  description: Add a domain to the deny list on all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain to block (e.g. ads.example.com)
+      required: true
+      example: "ads.example.com"
+      selector:
+        text:
+    comment:
+      name: Comment
+      description: Optional comment for this entry.
+      required: false
+      default: ""
+      example: "Added via HA"
+      selector:
+        text:
+    include_subdomains:
+      name: Include Subdomains
+      description: Also block all subdomains via regex rule.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+remove_denied_domain:
+  name: Remove Denied Domain
+  description: Remove a domain from the deny list on all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain to remove from deny list.
+      required: true
+      example: "ads.example.com"
+      selector:
+        text:
+
+add_allowed_domain:
+  name: Add Allowed Domain
+  description: Add a domain to the allow list on all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain to allow (e.g. safe.example.com)
+      required: true
+      example: "safe.example.com"
+      selector:
+        text:
+    comment:
+      name: Comment
+      description: Optional comment for this entry.
+      required: false
+      default: ""
+      example: "Added via HA"
+      selector:
+        text:
+    include_subdomains:
+      name: Include Subdomains
+      description: Also allow all subdomains via regex rule.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+remove_allowed_domain:
+  name: Remove Allowed Domain
+  description: Remove a domain from the allow list on all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain to remove from allow list.
+      required: true
+      example: "safe.example.com"
+      selector:
+        text:
+
+add_dns_record:
+  name: Add DNS Record
+  description: Add a local DNS record on all Pi-hole instances.
+  fields:
+    ip:
+      name: IP Address
+      description: The IP address for the DNS record.
+      required: true
+      example: "192.168.16.100"
+      selector:
+        text:
+    domain:
+      name: Domain
+      description: The domain name for the DNS record.
+      required: true
+      example: "myserver.local"
+      selector:
+        text:
+
+remove_dns_record:
+  name: Remove DNS Record
+  description: Remove a local DNS record from all Pi-hole instances.
+  fields:
+    ip:
+      name: IP Address
+      description: The IP address of the DNS record to remove.
+      required: true
+      example: "192.168.16.100"
+      selector:
+        text:
+    domain:
+      name: Domain
+      description: The domain name of the DNS record to remove.
+      required: true
+      example: "myserver.local"
+      selector:
+        text:
+
+add_blocklist:
+  name: Add Blocklist
+  description: Add a blocklist (adlist) URL on all Pi-hole instances.
+  fields:
+    url:
+      name: URL
+      description: The blocklist URL to add.
+      required: true
+      example: "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+      selector:
+        text:
+    comment:
+      name: Comment
+      description: Optional comment for this blocklist.
+      required: false
+      default: ""
+      example: "StevenBlack hosts"
+      selector:
+        text:
+
+remove_blocklist:
+  name: Remove Blocklist
+  description: Remove a blocklist (adlist) URL from all Pi-hole instances.
+  fields:
+    url:
+      name: URL
+      description: The blocklist URL to remove.
+      required: true
+      example: "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+      selector:
+        text:
+
+toggle_blocklist:
+  name: Toggle Blocklist
+  description: Enable or disable a blocklist on all Pi-hole instances.
+  fields:
+    list_id:
+      name: List ID
+      description: The ID of the blocklist to toggle.
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          mode: box
+    enabled:
+      name: Enabled
+      description: Whether the blocklist should be enabled.
+      required: true
+      example: true
+      selector:
+        boolean:
+
+add_dns_cname:
+  name: Add CNAME Record
+  description: Add a local CNAME record on all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain name (alias).
+      required: true
+      example: "app.local"
+      selector:
+        text:
+    target:
+      name: Target
+      description: The target domain.
+      required: true
+      example: "server.local"
+      selector:
+        text:
+
+remove_dns_cname:
+  name: Remove CNAME Record
+  description: Remove a local CNAME record from all Pi-hole instances.
+  fields:
+    domain:
+      name: Domain
+      description: The domain name (alias) to remove.
+      required: true
+      example: "app.local"
+      selector:
+        text:
+    target:
+      name: Target
+      description: The target domain.
+      required: true
+      example: "server.local"
+      selector:
+        text:
+
+compare_dns_records:
+  name: Compare DNS Records
+  description: Vergleicht DNS Records (A + CNAME) über alle Instanzen (on-demand).
+
+sync_dns_records:
+  name: Sync DNS Records
+  description: Synchronisiert alle DNS Records (A + CNAME) auf alle Instanzen.
+
+get_recent_queries:
+  name: Recent Queries
+  description: Ruft die letzten DNS-Anfragen von der primären Instanz ab (on-demand).
+  fields:
+    count:
+      name: Anzahl
+      description: Wie viele Queries (default 50)
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 10
+          max: 200
+
+get_top_blocked:
+  name: Top Blocked Domains
+  description: Ruft die meistblockierten Domains von allen Instanzen ab (on-demand).
+  fields:
+    count:
+      name: Anzahl
+      description: Wie viele Top-Domains (default 20)
+      required: false
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 100
+
+sync_all:
+  name: Sync All
+  description: Trigger a full data refresh on all Pi-hole instances.

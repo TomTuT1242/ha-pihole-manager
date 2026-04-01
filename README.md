@@ -1,6 +1,6 @@
-# TomTuT Pi-hole Manager
+# Pi-hole Manager
 
-Custom Lovelace card for Home Assistant that provides a **unified dashboard** to manage multiple Pi-hole v6 instances from a single place.
+Custom Home Assistant integration for **centralized management of multiple Pi-hole v6 instances** — including a built-in Lovelace dashboard card.
 
 <!-- screenshot -->
 
@@ -8,27 +8,16 @@ Custom Lovelace card for Home Assistant that provides a **unified dashboard** to
 
 ## Features
 
-- Unified view across all Pi-hole instances (aggregated stats)
-- Expandable per-instance details
+- Multi-instance management from a single place
+- Unified dashboard card (auto-registered, no manual resource setup)
+- Aggregated stats across all Pi-holes
 - Master blocking toggle (all instances at once)
-- Admin section for managing:
-  - Denied domains (blacklist)
-  - Allowed domains (whitelist)
-  - Local DNS records (A + CNAME)
-  - Blocklists (adlists)
-- Cross-instance sync (push changes to all Pi-holes)
-- Top blocked domains & recent queries
-- Auto-discovery of Pi-hole entities (no manual entity config needed)
-- German & English translations
-
----
-
-## Requirements
-
-This card requires the **Pi-hole Manager** custom integration to be installed.
-The integration provides the entities and services that the card uses.
-
-Repository: [TomTuTHub/ha-pihole-manager](https://github.com/TomTuTHub/ha-pihole-manager) (Integration)
+- Denied / Allowed domain management (with subdomain blocking)
+- Local DNS records (A + CNAME)
+- Blocklist (adlist) management
+- Cross-instance sync
+- Top blocked domains & recent queries (on-demand)
+- Pi-hole v6 API (not v5)
 
 ---
 
@@ -36,32 +25,39 @@ Repository: [TomTuTHub/ha-pihole-manager](https://github.com/TomTuTHub/ha-pihole
 
 ### HACS (Custom repository)
 
-1. HACS → **Frontend**
+1. HACS → **Integrations**
 2. Menu (...) → **Custom repositories**
-3. Add repository URL: `https://github.com/TomTuTHub/tomtut-pihole-manager`
-4. Category: **Dashboard**
+3. Add repository URL: `https://github.com/TomTuTHub/ha-pihole-manager`
+4. Category: **Integration**
 5. Install → **Restart Home Assistant**
 
 ### Manual
 
-1. Download `pihole-manager-card.js` from the [latest release](https://github.com/TomTuTHub/tomtut-pihole-manager/releases)
-2. Copy to `<config>/www/pihole-manager-card.js`
-3. Add as resource in Lovelace:
-   - Settings → Dashboards → Resources
-   - URL: `/local/pihole-manager-card.js`
-   - Type: JavaScript Module
+1. Copy `custom_components/pihole_manager` to:
+   - `<config>/custom_components/pihole_manager`
+2. Restart Home Assistant
 
 ---
 
 ## Configuration
 
-Add the card to your Lovelace dashboard:
+1. Settings → **Devices & Services**
+2. **Add Integration**
+3. Search for **Pi-hole Manager**
+4. Enter host, port, and admin password
+5. Repeat for each Pi-hole instance
+
+The Lovelace card is registered automatically. Add it to any dashboard:
 
 ```yaml
 type: custom:pihole-manager-card
 ```
 
-No additional configuration needed — the card auto-discovers all Pi-hole Manager entities.
+---
+
+## What this is NOT
+
+This integration does **not** replace the official Pi-hole integration. It focuses on **management** (blocklists, domains, DNS, sync), not monitoring. Both can run side by side.
 
 ---
 
@@ -70,9 +66,9 @@ No additional configuration needed — the card auto-discovers all Pi-hole Manag
 Please open a **GitHub Issue** and include:
 
 - Home Assistant version
-- Card version
-- Browser (Chrome, Firefox, Safari, ...)
-- Relevant browser console errors
+- Integration version
+- Pi-hole version
+- Relevant logs (**Settings → System → Logs**, filter for `pihole_manager`)
 - Steps to reproduce
 
 ---
@@ -85,7 +81,7 @@ MIT
 
 ## Transparency
 
-I'm a trained IT systems specialist with many years of experience in the field. Back in the day it was MCSE — today it's Vibe-Coding. What can I say: I built this card with the help of **Claude** (Anthropic). The code has been reviewed and tested by me and runs in my own production setup.
+I'm a trained IT systems specialist with many years of experience in the field. Back in the day it was MCSE — today it's Vibe-Coding. What can I say: I built this integration with the help of **Claude** (Anthropic). The code has been reviewed and tested by me and runs in my own production setup.
 
 ---
 

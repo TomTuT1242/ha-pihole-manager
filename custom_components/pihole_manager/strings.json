@@ -1,0 +1,181 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Pi-hole Instance",
+        "description": "Configure a Pi-hole v6 instance. You can add multiple instances — each will be managed separately and can be synced.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "password": "Admin Password",
+          "use_ssl": "Use SSL",
+          "verify_ssl": "Verify SSL Certificate",
+          "webui_url": "WebUI URL"
+        },
+        "data_description": {
+          "name": "A friendly name for this Pi-hole instance",
+          "host": "Hostname or IP address (e.g. 192.168.16.5)",
+          "port": "Port number (80 for LXC, 8080 for Docker)",
+          "password": "Pi-hole admin password",
+          "webui_url": "HTTPS URL for the Pi-hole WebUI (e.g. https://pihole.example.com)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Pi-hole Instance",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "password": "Admin Password",
+          "use_ssl": "Use SSL",
+          "verify_ssl": "Verify SSL Certificate",
+          "webui_url": "WebUI URL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to Pi-hole. Check host and port.",
+      "invalid_auth": "Invalid password.",
+      "unknown": "Unexpected error. Check the logs."
+    },
+    "abort": {
+      "already_configured": "This Pi-hole instance is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "queries_total": { "name": "Queries Total" },
+      "queries_blocked": { "name": "Queries Blocked" },
+      "percent_blocked": { "name": "Percent Blocked" },
+      "domains_blocked": { "name": "Domains on Blocklist" },
+      "blocklists": { "name": "Blocklists" },
+      "denied_domains": { "name": "Denied Domains" },
+      "allowed_domains": { "name": "Allowed Domains" },
+      "dns_records": { "name": "Local DNS Records" }
+    },
+    "switch": {
+      "blocking": { "name": "Blocking" }
+    }
+  },
+  "services": {
+    "add_denied_domain": {
+      "name": "Add Denied Domain",
+      "description": "Add a domain to the deny list on all Pi-hole instances.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "The domain to block."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "Optional comment for this entry."
+        }
+      }
+    },
+    "remove_denied_domain": {
+      "name": "Remove Denied Domain",
+      "description": "Remove a domain from the deny list on all Pi-hole instances.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "The domain to remove."
+        }
+      }
+    },
+    "add_allowed_domain": {
+      "name": "Add Allowed Domain",
+      "description": "Add a domain to the allow list on all Pi-hole instances.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "The domain to allow."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "Optional comment for this entry."
+        }
+      }
+    },
+    "remove_allowed_domain": {
+      "name": "Remove Allowed Domain",
+      "description": "Remove a domain from the allow list on all Pi-hole instances.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "The domain to remove."
+        }
+      }
+    },
+    "add_dns_record": {
+      "name": "Add DNS Record",
+      "description": "Add a local DNS record on all Pi-hole instances.",
+      "fields": {
+        "ip": {
+          "name": "IP Address",
+          "description": "The IP address for the record."
+        },
+        "domain": {
+          "name": "Domain",
+          "description": "The domain name for the record."
+        }
+      }
+    },
+    "remove_dns_record": {
+      "name": "Remove DNS Record",
+      "description": "Remove a local DNS record from all Pi-hole instances.",
+      "fields": {
+        "ip": {
+          "name": "IP Address",
+          "description": "The IP address of the record."
+        },
+        "domain": {
+          "name": "Domain",
+          "description": "The domain name of the record."
+        }
+      }
+    },
+    "add_blocklist": {
+      "name": "Add Blocklist",
+      "description": "Add a blocklist URL on all Pi-hole instances.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "The blocklist URL to add."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "Optional comment for this blocklist."
+        }
+      }
+    },
+    "remove_blocklist": {
+      "name": "Remove Blocklist",
+      "description": "Remove a blocklist URL from all Pi-hole instances.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "The blocklist URL to remove."
+        }
+      }
+    },
+    "toggle_blocklist": {
+      "name": "Toggle Blocklist",
+      "description": "Enable or disable a blocklist on all Pi-hole instances.",
+      "fields": {
+        "list_id": {
+          "name": "List ID",
+          "description": "The ID of the blocklist."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Whether the blocklist should be enabled."
+        }
+      }
+    },
+    "sync_all": {
+      "name": "Sync All",
+      "description": "Trigger a full data refresh on all Pi-hole instances."
+    }
+  }
+}

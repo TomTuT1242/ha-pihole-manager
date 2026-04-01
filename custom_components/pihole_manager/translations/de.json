@@ -1,0 +1,181 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pi-hole Instanz hinzufügen",
+        "description": "Konfiguriere eine Pi-hole v6 Instanz. Du kannst mehrere Instanzen hinzufügen — jede wird separat verwaltet und kann synchronisiert werden.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "password": "Admin-Passwort",
+          "use_ssl": "SSL verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen",
+          "webui_url": "WebUI URL"
+        },
+        "data_description": {
+          "name": "Ein Name für diese Pi-hole Instanz",
+          "host": "Hostname oder IP-Adresse (z.B. 192.168.16.5)",
+          "port": "Port (80 für LXC, 8080 für Docker)",
+          "password": "Pi-hole Admin-Passwort",
+          "webui_url": "HTTPS-URL der Pi-hole WebUI (z.B. https://pihole.example.com)"
+        }
+      },
+      "reconfigure": {
+        "title": "Pi-hole Instanz neu konfigurieren",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "password": "Admin-Passwort",
+          "use_ssl": "SSL verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen",
+          "webui_url": "WebUI URL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zu Pi-hole fehlgeschlagen. Host und Port prüfen.",
+      "invalid_auth": "Ungültiges Passwort.",
+      "unknown": "Unerwarteter Fehler. Logs prüfen."
+    },
+    "abort": {
+      "already_configured": "Diese Pi-hole Instanz ist bereits konfiguriert."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "queries_total": { "name": "Anfragen gesamt" },
+      "queries_blocked": { "name": "Anfragen blockiert" },
+      "percent_blocked": { "name": "Prozent blockiert" },
+      "domains_blocked": { "name": "Domains auf Blockliste" },
+      "blocklists": { "name": "Blocklisten" },
+      "denied_domains": { "name": "Geblockte Domains" },
+      "allowed_domains": { "name": "Erlaubte Domains" },
+      "dns_records": { "name": "Lokale DNS-Einträge" }
+    },
+    "switch": {
+      "blocking": { "name": "Blocking" }
+    }
+  },
+  "services": {
+    "add_denied_domain": {
+      "name": "Domain blockieren",
+      "description": "Fügt eine Domain zur Deny-Liste aller Pi-hole Instanzen hinzu.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "Die zu blockierende Domain."
+        },
+        "comment": {
+          "name": "Kommentar",
+          "description": "Optionaler Kommentar für diesen Eintrag."
+        }
+      }
+    },
+    "remove_denied_domain": {
+      "name": "Domain-Blockierung entfernen",
+      "description": "Entfernt eine Domain von der Deny-Liste aller Pi-hole Instanzen.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "Die zu entfernende Domain."
+        }
+      }
+    },
+    "add_allowed_domain": {
+      "name": "Domain erlauben",
+      "description": "Fügt eine Domain zur Allow-Liste aller Pi-hole Instanzen hinzu.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "Die zu erlaubende Domain."
+        },
+        "comment": {
+          "name": "Kommentar",
+          "description": "Optionaler Kommentar für diesen Eintrag."
+        }
+      }
+    },
+    "remove_allowed_domain": {
+      "name": "Domain-Erlaubnis entfernen",
+      "description": "Entfernt eine Domain von der Allow-Liste aller Pi-hole Instanzen.",
+      "fields": {
+        "domain": {
+          "name": "Domain",
+          "description": "Die zu entfernende Domain."
+        }
+      }
+    },
+    "add_dns_record": {
+      "name": "DNS-Eintrag hinzufügen",
+      "description": "Fügt einen lokalen DNS-Eintrag auf allen Pi-hole Instanzen hinzu.",
+      "fields": {
+        "ip": {
+          "name": "IP-Adresse",
+          "description": "Die IP-Adresse für den DNS-Eintrag."
+        },
+        "domain": {
+          "name": "Domain",
+          "description": "Der Domainname für den DNS-Eintrag."
+        }
+      }
+    },
+    "remove_dns_record": {
+      "name": "DNS-Eintrag entfernen",
+      "description": "Entfernt einen lokalen DNS-Eintrag von allen Pi-hole Instanzen.",
+      "fields": {
+        "ip": {
+          "name": "IP-Adresse",
+          "description": "Die IP-Adresse des DNS-Eintrags."
+        },
+        "domain": {
+          "name": "Domain",
+          "description": "Der Domainname des DNS-Eintrags."
+        }
+      }
+    },
+    "add_blocklist": {
+      "name": "Blockliste hinzufügen",
+      "description": "Fügt eine Blocklisten-URL auf allen Pi-hole Instanzen hinzu.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Die Blocklisten-URL."
+        },
+        "comment": {
+          "name": "Kommentar",
+          "description": "Optionaler Kommentar für diese Blockliste."
+        }
+      }
+    },
+    "remove_blocklist": {
+      "name": "Blockliste entfernen",
+      "description": "Entfernt eine Blocklisten-URL von allen Pi-hole Instanzen.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Die zu entfernende Blocklisten-URL."
+        }
+      }
+    },
+    "toggle_blocklist": {
+      "name": "Blockliste umschalten",
+      "description": "Aktiviert oder deaktiviert eine Blockliste auf allen Pi-hole Instanzen.",
+      "fields": {
+        "list_id": {
+          "name": "Listen-ID",
+          "description": "Die ID der Blockliste."
+        },
+        "enabled": {
+          "name": "Aktiviert",
+          "description": "Ob die Blockliste aktiviert sein soll."
+        }
+      }
+    },
+    "sync_all": {
+      "name": "Alle synchronisieren",
+      "description": "Aktualisiert die Daten aller Pi-hole Instanzen."
+    }
+  }
+}
