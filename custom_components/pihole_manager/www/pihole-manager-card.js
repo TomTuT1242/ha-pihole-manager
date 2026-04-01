@@ -7,12 +7,6 @@
 class PiholeManagerCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
-    if (!this._rendered) {
-      this._render();
-      this._rendered = true;
-      this._update();
-      return;
-    }
     if (!this._eventSubscribed && hass.connection) {
       this._eventSubscribed = true;
       hass.connection.subscribeEvents((ev) => {
@@ -25,6 +19,12 @@ class PiholeManagerCard extends HTMLElement {
           this._updateLastSync();
         }
       }, "pihole_manager_sync_result");
+    }
+    if (!this._rendered) {
+      this._render();
+      this._rendered = true;
+      this._update();
+      return;
     }
     // Targeted update — only refresh values, don't rebuild DOM
     this._updateValues();
@@ -72,6 +72,7 @@ class PiholeManagerCard extends HTMLElement {
     this._queriesOpen = false;
     this._lastSyncTime = null;
     this._lastSyncStatus = null; // "success" | "partial" | "failed"
+    this._lastListHash = null; // hash of list data to detect changes
   }
 
   // ── Discover entities by entity_id pattern ─────────────
@@ -703,11 +704,36 @@ class PiholeManagerCard extends HTMLElement {
     return num.toLocaleString("de-DE");
   }
 
+  _getListHash(instances) {
+    const lists = this._getListData(instances);
+    return JSON.stringify([
+      lists.denied.map(d => d.domain).sort(),
+      lists.allowed.map(d => d.domain).sort(),
+      lists.dns.map(d => d.domain + d.ip).sort(),
+      lists.cnames.map(d => d.domain + d.target).sort(),
+      lists.blocklists.map(b => b.address + (b.enabled !== false)).sort(),
+    ]);
+  }
+
   _updateValues() {
     if (!this.shadowRoot) return;
     const sr = this.shadowRoot;
     const instances = this._getInstances();
     if (instances.length === 0) return;
+
+    // Check if list data changed — if so, do a full re-render and restore dynamic data
+    const listHash = this._getListHash(instances);
+    if (this._lastListHash && listHash !== this._lastListHash) {
+      this._lastListHash = listHash;
+      this._update();
+      // Restore dynamic data containers
+      if (this._topBlockedData) this._updateTopBlocked();
+      if (this._recentQueriesData) this._updateRecentQueries();
+      if (this._dnsCompareData) this._updateDnsCompare();
+      if (this._feedback) this._updateFeedback();
+      return;
+    }
+    this._lastListHash = listHash;
 
     const stats = this._getUnifiedStats(instances);
 
@@ -776,6 +802,18 @@ class PiholeManagerCard extends HTMLElement {
         statEls[0].textContent = this._formatNumber(q);
         statEls[1].textContent = this._formatNumber(b);
         statEls[2].textContent = pct !== null ? pct + "%" : "\u2014";
+      }
+    });
+
+    // Update category count badges
+    const lists = this._getListData(instances);
+    const catCounts = { denied: lists.denied.length, allowed: lists.allowed.length, dns: lists.dns.length + lists.cnames.length, blocklists: lists.blocklists.length };
+    sr.querySelectorAll(".category-btn").forEach(btn => {
+      const cat = btn.dataset.cat;
+      const countEl = btn.querySelector(".cat-count");
+      if (countEl && catCounts[cat] !== undefined) {
+        const v = String(catCounts[cat]);
+        if (countEl.textContent !== v) countEl.textContent = v;
       }
     });
   }
