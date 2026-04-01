@@ -11,6 +11,19 @@ class PiholeManagerCard extends HTMLElement {
       this._render();
       this._rendered = true;
     }
+    if (!this._eventSubscribed && hass.connection) {
+      this._eventSubscribed = true;
+      hass.connection.subscribeEvents((ev) => {
+        const data = ev.data || {};
+        if (data.action === "sync_all") {
+          this._lastSyncTime = new Date();
+          const failCount = (data.failed || []).length;
+          const successCount = (data.success || []).length;
+          this._lastSyncStatus = failCount === 0 ? "success" : (successCount > 0 ? "partial" : "failed");
+          this._updateLastSync();
+        }
+      }, "pihole_manager_sync_result");
+    }
     this._update();
   }
 
@@ -51,8 +64,11 @@ class PiholeManagerCard extends HTMLElement {
     this._recentQueriesTime = null;
     this._recentQueriesLoading = false;
     this._recentQueriesOpen = false;
+    this._recentQueriesFilterBlocked = false;
     this._topBlockedOpen = false;
     this._queriesOpen = false;
+    this._lastSyncTime = null;
+    this._lastSyncStatus = null; // "success" | "partial" | "failed"
   }
 
   // ── Discover entities by entity_id pattern ─────────────
@@ -203,6 +219,19 @@ class PiholeManagerCard extends HTMLElement {
     }
   }
 
+  _updateLastSync() {
+    const el = this.shadowRoot?.getElementById("lastSyncValue");
+    const card = this.shadowRoot?.getElementById("lastSyncCard");
+    if (!el) return;
+    if (this._lastSyncTime) {
+      el.textContent = this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr";
+      if (card) {
+        card.style.borderColor = this._lastSyncStatus === "failed" ? "var(--red)" : "";
+        el.style.color = this._lastSyncStatus === "failed" ? "var(--red)" : "";
+      }
+    }
+  }
+
   _showFeedback(type, message) {
     this._feedback = { type, message };
     if (this._feedbackTimer) clearTimeout(this._feedbackTimer);
@@ -293,13 +322,20 @@ class PiholeManagerCard extends HTMLElement {
       ? this._recentQueriesTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr"
       : "";
 
-    const blockedStatuses = new Set(["GRAVITY", "BLACKLIST", "REGEX", "DENYLIST",
-      "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL", "EXTERNAL_BLOCKED_NXRA", "SPECIAL_DOMAIN"]);
-
-    const sorted = [...this._recentQueriesData].sort((a, b) => b.time - a.time).slice(0, 20);
+    // Filter: PTR raus, optional nur Blocked
+    let filtered = this._recentQueriesData.filter(q => !q.domain.endsWith('.in-addr.arpa'));
+    if (this._recentQueriesFilterBlocked) {
+      filtered = filtered.filter(q => q.blocked);
+    }
+    const sorted = filtered.sort((a, b) => b.time - a.time).slice(0, 30);
     container.innerHTML = `
       <button class="top-blocked-btn" id="recentQueriesBtn">Aktualisieren</button>
-      <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
+      <div class="rq-toolbar">
+        <div class="top-blocked-time">Abgerufen: ${timeStr}</div>
+        <label class="rq-filter-label">
+          <input type="checkbox" id="rqFilterBlocked" ${this._recentQueriesFilterBlocked ? "checked" : ""} /> Nur geblockte
+        </label>
+      </div>
       <ul class="rq-list">
         ${sorted.map(q => {
           const blocked = q.blocked;
@@ -318,6 +354,11 @@ class PiholeManagerCard extends HTMLElement {
       </ul>
     `;
     this._bindRecentQueriesBtn();
+    // Filter toggle handler
+    this.shadowRoot?.getElementById("rqFilterBlocked")?.addEventListener("change", (e) => {
+      this._recentQueriesFilterBlocked = e.target.checked;
+      this._updateRecentQueries();
+    });
   }
 
   _bindRecentQueriesBtn() {
@@ -327,7 +368,7 @@ class PiholeManagerCard extends HTMLElement {
       this._recentQueriesLoading = true;
       this._updateRecentQueries();
       try {
-        const data = await this._callServiceWithResponse("get_recent_queries", { count: 20 });
+        const data = await this._callServiceWithResponse("get_recent_queries", { count: 100 });
         this._recentQueriesData = data.queries || [];
         this._recentQueriesTime = new Date();
       } catch (err) {
@@ -612,6 +653,9 @@ class PiholeManagerCard extends HTMLElement {
         @keyframes tb-spin { to { transform: rotate(360deg); } }
 
         /* Recent Queries */
+        .rq-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .rq-filter-label { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); cursor: pointer; font-size: 12px; }
+        .rq-filter-label input[type="checkbox"] { accent-color: var(--accent); }
         .rq-list { margin: 0; padding: 0; list-style: none; }
         .rq-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; border-bottom: 1px solid var(--divider); }
         .rq-item:last-child { border-bottom: none; }
@@ -712,9 +756,9 @@ class PiholeManagerCard extends HTMLElement {
           <div class="stat-value">${this._formatNumber(stats.domains)}</div>
           <div class="stat-label">Domains auf Blockliste</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.lists}</div>
-          <div class="stat-label">Blocklisten</div>
+        <div class="stat-card" id="lastSyncCard">
+          <div class="stat-value" id="lastSyncValue">${this._lastSyncTime ? this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr" : "\u2014"}</div>
+          <div class="stat-label">Letzter Sync</div>
         </div>
       </div>
 

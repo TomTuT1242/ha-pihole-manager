@@ -388,7 +388,7 @@ async def _handle_sync_dns_records(call: ServiceCall) -> None:
 
 SCHEMA_RECENT_QUERIES = vol.Schema(
     {
-        vol.Optional("count", default=50): vol.All(vol.Coerce(int), vol.Range(min=10, max=200)),
+        vol.Optional("count", default=100): vol.All(vol.Coerce(int), vol.Range(min=10, max=500)),
     }
 )
 
@@ -397,33 +397,50 @@ BLOCKED_STATUSES = {"GRAVITY", "BLACKLIST", "REGEX", "DENYLIST", "EXTERNAL_BLOCK
 
 
 async def _handle_get_recent_queries(call: ServiceCall) -> dict[str, Any]:
-    count = call.data.get("count", 50)
+    count = call.data.get("count", 100)
     coordinators = _get_coordinators(call.hass)
     if not coordinators:
         return {"queries": []}
 
-    # Query only first (primary) instance — queries are instance-specific
-    api = coordinators[0].api
-    try:
-        raw = await api.get_recent_queries(count)
-    except Exception as err:
-        _LOGGER.error("get_recent_queries failed: %s", err)
-        return {"queries": []}
+    # Query ALL instances
+    results = await asyncio.gather(
+        *(c.api.get_recent_queries(count) for c in coordinators),
+        return_exceptions=True,
+    )
 
     queries = []
-    for q in raw:
-        status = q.get("status", "")
-        blocked = status in BLOCKED_STATUSES
-        queries.append({
-            "domain": q.get("domain", ""),
-            "client": q.get("client", {}).get("ip", ""),
-            "type": q.get("type", ""),
-            "status": status,
-            "blocked": blocked,
-            "time": q.get("time", 0),
-        })
+    for coordinator, result in zip(coordinators, results):
+        if isinstance(result, Exception):
+            _LOGGER.error(
+                "get_recent_queries failed on %s: %s",
+                coordinator.config_entry.title,
+                result,
+            )
+            continue
+        instance_name = coordinator.config_entry.title
+        for q in result:
+            status = q.get("status", "")
+            blocked = status in BLOCKED_STATUSES
+            queries.append({
+                "domain": q.get("domain", ""),
+                "client": q.get("client", {}).get("ip", ""),
+                "type": q.get("type", ""),
+                "status": status,
+                "blocked": blocked,
+                "time": q.get("time", 0),
+                "instance": instance_name,
+            })
 
-    return {"queries": queries}
+    # Sort by time descending, deduplicate (same domain+time+client = same query)
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for q in sorted(queries, key=lambda x: x["time"], reverse=True):
+        key = f"{q['domain']}_{q['time']}_{q['client']}"
+        if key not in seen:
+            seen.add(key)
+            unique.append(q)
+
+    return {"queries": unique[:100]}
 
 
 SCHEMA_TOP_BLOCKED = vol.Schema(
