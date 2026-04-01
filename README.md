@@ -27,7 +27,7 @@ Custom Home Assistant integration for **centralized management of multiple Pi-ho
 
 1. HACS → **Integrations**
 2. Menu (...) → **Custom repositories**
-3. Add repository URL: `https://github.com/TomTuTHub/ha-pihole-manager`
+3. Add repository URL: `https://github.com/TomTuT1242/ha-pihole-manager`
 4. Category: **Integration**
 5. Install → **Restart Home Assistant**
 
