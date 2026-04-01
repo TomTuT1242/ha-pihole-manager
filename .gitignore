@@ -2,6 +2,7 @@
 .claude/
 CLAUDE.md
 STARTUP_PROMPT.md
+SONNET_PROMPT*.md
 HA-Pihole-Manager.command
 
 # Docs (internal)
