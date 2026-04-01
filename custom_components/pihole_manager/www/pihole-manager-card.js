@@ -224,7 +224,7 @@ class PiholeManagerCard extends HTMLElement {
     const card = this.shadowRoot?.getElementById("lastSyncCard");
     if (!el) return;
     if (this._lastSyncTime) {
-      el.textContent = this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr";
+      el.textContent = this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
       if (card) {
         card.style.borderColor = this._lastSyncStatus === "failed" ? "var(--red)" : "";
         el.style.color = this._lastSyncStatus === "failed" ? "var(--red)" : "";
@@ -757,7 +757,7 @@ class PiholeManagerCard extends HTMLElement {
           <div class="stat-label">Domains auf Blockliste</div>
         </div>
         <div class="stat-card" id="lastSyncCard">
-          <div class="stat-value" id="lastSyncValue">${this._lastSyncTime ? this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " Uhr" : "\u2014"}</div>
+          <div class="stat-value" id="lastSyncValue">${this._lastSyncTime ? this._lastSyncTime.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr" : "\u2014"}</div>
           <div class="stat-label">Letzter Sync</div>
         </div>
       </div>
@@ -808,6 +808,14 @@ class PiholeManagerCard extends HTMLElement {
       </button>
 
       <div class="collapse-panel ${this._adminOpen ? "open" : ""}" id="adminPanel">
+
+        <!-- Sync All — ganz oben in Verwaltung -->
+        <div class="sync-row">
+          <button class="sync-btn" id="syncAllBtn">
+            \u21BB Alle Pi's synchronisieren
+          </button>
+        </div>
+        <div class="admin-feedback" id="adminFeedback"></div>
 
         <!-- Denied Domains -->
         <button class="category-btn ${this._openCategory === "denied" ? "open" : ""}" data-cat="denied">
@@ -932,14 +940,6 @@ class PiholeManagerCard extends HTMLElement {
           </div>
         </div>
 
-        <!-- Sync All (inside Verwaltung) -->
-        <div class="sync-row">
-          <button class="sync-btn" id="syncAllBtn">
-            \u21BB Alle Pi's synchronisieren
-          </button>
-        </div>
-
-        <div class="admin-feedback" id="adminFeedback"></div>
       </div>
 
       <!-- Abfragen Section -->
