@@ -84,7 +84,7 @@ add_dns_record:
       name: IP Address
       description: The IP address for the DNS record.
       required: true
-      example: "192.168.16.100"
+      example: "192.168.1.100"
       selector:
         text:
     domain:
@@ -103,7 +103,7 @@ remove_dns_record:
       name: IP Address
       description: The IP address of the DNS record to remove.
       required: true
-      example: "192.168.16.100"
+      example: "192.168.1.100"
       selector:
         text:
     domain:

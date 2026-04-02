@@ -15,7 +15,7 @@
         },
         "data_description": {
           "name": "A friendly name for this Pi-hole instance",
-          "host": "Hostname or IP address (e.g. 192.168.16.5)",
+          "host": "Hostname or IP address (e.g. 192.168.1.100)",
           "port": "Port number (80 for LXC, 8080 for Docker)",
           "password": "Pi-hole admin password",
           "webui_url": "HTTPS URL for the Pi-hole WebUI (e.g. https://pihole.example.com)"
